@@ -1,5 +1,5 @@
 import disnake
-import time
+import httpx
 import itertools
 
 from loguru import logger
@@ -10,6 +10,7 @@ from functions.play_audio import play_music
 class Events(commands.Cog):
     def __init__(self, bot = commands.AutoShardedInteractionBot):
         self.bot = bot
+        self.config = bot.config
         self.embed_color = bot.embed_color
         self.embed_color_error = bot.embed_color_error
     
@@ -17,41 +18,40 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("Cog's loaded")
+        
         for guild in self.bot.guilds:
-            for voice_channel in guild.voice_channels:
-                # Проверяем, есть ли хотя бы один человек в голосовом канале
-                if voice_channel.members:
-                    # Если бот уже подключен к голосовому каналу, пропускаем
-                    if guild.voice_client is not None:
-                        continue
-
-                    # Если нет, подключаемся и воспроизводим музыку
-                    await play_music(channel=voice_channel)
-                else:
-                    # Если нет никого в голосовом канале, прекращаем воспроизведение
-                    if guild.voice_client is not None and guild.voice_client.is_playing():
-                        guild.voice_client.stop()
-
-
+            # --- Присоединение в последний канал из сохранённых ---
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={guild.id}"
+                )
+            
+            if response.status_code == 200:
+                channel = self.bot.get_channel(response.json())
+                try:
+                    await channel.connect()
+                    await play_music(channel=channel)
+                except Exception as _ex: 
+                    print(_ex)
+               
         logger.info("Music start")
 
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # Проверяем, входит ли пользователь в голосовой канал, где присутствует бот
+        # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
         bot_channel = next((vc for vc in self.bot.voice_clients if vc.guild.id == member.guild.id), None)
 
-        # Проверяем, был ли пользователь в голосовом канале и вышел из него
+        # === Проверяем, был ли пользователь в голосовом канале и вышел из него ===
         if before.channel and not after.channel:
-            # Проверяем, остались ли еще пользователи в голосовом канале (кроме бота)
+            # === Проверяем, остались ли еще пользователи в голосовом канале ===
             channel_members = [m for m in before.channel.members if not m.bot]
             if not channel_members:
-                # Если больше нет пользователей, кроме бота, то прекращаем воспроизведение
                 if bot_channel and bot_channel.channel == before.channel:
                     bot_channel.stop()
                 return
 
-        # Проверяем, входит ли пользователь в голосовой канал, где присутствует бот
+        # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
         if bot_channel and bot_channel.channel == after.channel:
             await play_music(channel=after.channel)
 

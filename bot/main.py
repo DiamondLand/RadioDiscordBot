@@ -14,15 +14,15 @@ bot = commands.AutoShardedInteractionBot(
 )
 
 config = configparser.ConfigParser()
-config.read("configs/config.ini")
+config.read("bot/configs/config.ini")
 
 
 async def main():
     bot.embed_color = 0x2b2d31
     bot.embed_color_error = 0xc03c4d 
     bot.config = config
-    for folder in os.listdir("cogs"):
-        for file in os.listdir(f"cogs/{folder}"):
+    for folder in os.listdir("bot/cogs"):
+        for file in os.listdir(f"bot/cogs/{folder}"):
             if file.startswith("COG_"):
                 bot.load_extension(f"cogs.{folder}.{file[:-3]}")
                 logger.success(

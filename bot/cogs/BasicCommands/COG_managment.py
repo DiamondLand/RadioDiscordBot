@@ -1,4 +1,6 @@
 import disnake
+import httpx
+
 from disnake.ext import commands
 from functions.play_audio import play_music
 
@@ -6,6 +8,7 @@ from functions.play_audio import play_music
 class VoiceManagement(commands.Cog):
     def __init__(self, bot: commands.AutoShardedInteractionBot):
         self.bot = bot
+        self.config = bot.config
         self.embed_color = bot.embed_color
         self.embed_color_error = bot.embed_color_error
 
@@ -36,6 +39,7 @@ class VoiceManagement(commands.Cog):
         else:
             if voice_client.channel.id == channel.id:
                 await inter.response.send_message("❌ Бот уже подключен к этому голосовому каналу", ephemeral=True)
+                return
             else:
                 await voice_client.move_to(channel)
                 emb = disnake.Embed(
@@ -48,9 +52,17 @@ class VoiceManagement(commands.Cog):
                 )
                 await inter.response.send_message(embed=emb, ephemeral=True)
 
-        # Воспроизводим музыку в текущем голосовом канале
+        # --- Запись ID канала в базу---
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{self.config['SETTINGS']['backend_url']}add_voice_channel_id", json={
+                'guild_id': inter.guild.id,
+                'channel_id': channel.id
+            })
+
         await play_music(channel=channel)
 
+        
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='отключить', description='Отключить бота от голосового канала', default_member_permissions = disnake.Permissions(administrator=True))
     async def leave_from_voice_channnel(self, inter: disnake.ApplicationCommandInteraction):
@@ -67,6 +79,12 @@ class VoiceManagement(commands.Cog):
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
+
+        # --- Удаление ID канала ---
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{self.config['SETTINGS']['backend_url']}delete_voice_channel_id?guild_id={inter.guild.id}"
+            )
 
 
 def setup(bot: commands.AutoShardedInteractionBot):
