@@ -20,19 +20,19 @@ class Events(commands.Cog):
         logger.info("Cog's loaded")
         
         for guild in self.bot.guilds:
-            # --- Присоединение в последний канал из сохранённых ---
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={guild.id}"
                 )
-            
-            if response.status_code == 200:
-                channel = self.bot.get_channel(response.json())
+
+            if response.status_code == 200 and response.json():
                 try:
-                    await channel.connect()
-                    await play_music(channel=channel)
-                except Exception as _ex: 
+                    channel = self.bot.get_channel(response.json())
+                    voice_channel = await channel.connect()
+                    await play_music(channel=voice_channel)
+                except Exception as _ex:
                     print(_ex)
+
                
         logger.info("Music start")
 
@@ -42,18 +42,22 @@ class Events(commands.Cog):
         # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
         bot_channel = next((vc for vc in self.bot.voice_clients if vc.guild.id == member.guild.id), None)
 
-        # === Проверяем, был ли пользователь в голосовом канале и вышел из него ===
+        # === Проверяем, был ли пользователь в голосовом канале и вышел ли из него ===
         if before.channel and not after.channel:
             # === Проверяем, остались ли еще пользователи в голосовом канале ===
             channel_members = [m for m in before.channel.members if not m.bot]
             if not channel_members:
-                if bot_channel and bot_channel.channel == before.channel:
+                if bot_channel.is_connected() and bot_channel.channel == before.channel:
                     bot_channel.stop()
+                    print("остановлено")
                 return
 
         # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
-        if bot_channel and bot_channel.channel == after.channel:
-            await play_music(channel=after.channel)
+        if after.channel:
+            if not bot_channel.is_connected() or bot_channel.channel.id != after.channel.id:
+                # === Проверяем есть ли бот в канале ===
+                bot_channel = await after.channel.connect()
+        await play_music(channel=bot_channel)
 
 
     @commands.Cog.listener()

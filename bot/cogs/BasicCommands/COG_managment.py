@@ -14,51 +14,35 @@ class VoiceManagement(commands.Cog):
 
 
     @commands.has_permissions(administrator=True)
-    @commands.slash_command(name='присоединить', description='Присоединить бота к голосовому каналу', default_member_permissions=disnake.Permissions(administrator=True))
-    async def join_on_voice_channel(self, inter: disnake.ApplicationCommandInteraction, channel: disnake.VoiceChannel = (commands.Param(default=None, name="канал", description="в какой канал подключить?"))):
-        # === Присоединение бота к каналу, указанному в slash команде или в тот, где находится участник ===
-        if channel is None:
-            if inter.author.voice:
-                channel = inter.author.voice.channel
-            else:
-                await inter.response.send_message("❌ Укажите канал для подключения или же зайдите в него!", ephemeral=True)
-                return
-
-        voice_client = inter.guild.voice_client
-        if not voice_client:
-            await channel.connect()
-            emb = disnake.Embed(
-                description=f"{inter.author.mention}, бот присоедился к каналу **{channel.name}**.",
-                colour=self.embed_color
-            )
-            emb.set_author(
-                name=f"Приятного прослушивания, {inter.author.nick if inter.author.nick else inter.author.name}!",
-                icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
-            )
-            await inter.response.send_message(embed=emb, ephemeral=True)
-        else:
-            if voice_client.channel.id == channel.id:
-                await inter.response.send_message("❌ Бот уже подключен к этому голосовому каналу", ephemeral=True)
-                return
-            else:
-                await voice_client.move_to(channel)
-                emb = disnake.Embed(
-                    description=f"{inter.author.mention}, бот перемещён в канал **{channel.name}**.",
-                    colour=self.embed_color
-                )
-                emb.set_author(
-                    name=f"Приятного прослушивания, {inter.author.nick if inter.author.nick else inter.author.name}!",
-                    icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
-                )
-                await inter.response.send_message(embed=emb, ephemeral=True)
-
-        # --- Запись ID канала в базу---
+    @commands.slash_command(name='старт', description='Начать проигрывание потока ', default_member_permissions=disnake.Permissions(administrator=True))
+    async def join_on_voice_channel(self, inter: disnake.ApplicationCommandInteraction):
+        # === Проверка на наличие канала в базе данных ===
         async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{self.config['SETTINGS']['backend_url']}add_voice_channel_id", json={
-                'guild_id': inter.guild.id,
-                'channel_id': channel.id
-            })
+            channel_id_response = await client.get(
+                f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={inter.guild.id}"
+            )
+        
+        if channel_id_response.status_code == 200 and channel_id_response.json():
+            # === Пытаемся найти канал, указанный в настройках ===
+            try:
+                channel = self.bot.get_channel(channel_id_response.json())
+            except Exception:
+                await inter.response.send_message("❌ Указанный в настройках бота канал не был обнаружен!", ephemeral=True)
+                return
+
+            voice_client = inter.guild.voice_client
+            if not voice_client:
+                # === Если не подключён к каналу ===
+                try:
+                    voice_channel = await channel.connect()
+                except Exception: 
+                    await inter.response.send_message("❌ Не получилось подключиться к каналу, указанному в настройках бота!", ephemeral=True)
+                    return
+  
+            await play_music(channel=voice_channel)
+        else:
+            await inter.response.send_message("❌ Сперва укажите канал для проигрывания потока по команде управления!", ephemeral=True)
+            return
 
         await play_music(channel=channel)
 
@@ -66,7 +50,7 @@ class VoiceManagement(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='отключить', description='Отключить бота от голосового канала', default_member_permissions = disnake.Permissions(administrator=True))
     async def leave_from_voice_channnel(self, inter: disnake.ApplicationCommandInteraction):
-        if inter.guild.voice_client:
+        if inter.guild.voice_client.is_connected():
             await inter.guild.voice_client.disconnect()
             await inter.response.send_message("✅", ephemeral=True)
         else:
@@ -79,12 +63,6 @@ class VoiceManagement(commands.Cog):
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
-
-        # --- Удаление ID канала ---
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{self.config['SETTINGS']['backend_url']}delete_voice_channel_id?guild_id={inter.guild.id}"
-            )
 
 
 def setup(bot: commands.AutoShardedInteractionBot):
