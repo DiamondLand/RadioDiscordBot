@@ -37,9 +37,9 @@ class Settings(commands.Cog):
             voice_client = inter.guild.voice_client
             if not voice_client:
                 # === Если не подключен, то подключаем ===
-                await channel.connect()
+                voice_channel = await channel.connect()
                 emb = disnake.Embed(
-                    description=f"{inter.author.mention}, теперь **{channel.name}** будет канлом для воспроизведения потока.",
+                    description=f"{inter.author.mention}, теперь **{channel.name}** будет каналом для воспроизведения потока.",
                     colour=self.embed_color
                 )
                 emb.set_author(
@@ -54,7 +54,7 @@ class Settings(commands.Cog):
                     return
                 else:
                     # === Если подключён, но указан другой канал, то перемещаем ===
-                    await voice_client.move_to(channel)
+                    voice_channel = await voice_client.move_to(channel)
                     emb = disnake.Embed(
                         description=f"{inter.author.mention}, новый канал для воспроизведения потока — **{channel.name}**.",
                         colour=self.embed_color
@@ -77,7 +77,7 @@ class Settings(commands.Cog):
                 'kicked': False
             })
 
-        await play_music(channel=channel)
+        await play_music(channel=voice_channel)
 
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='удалить-канал', description='Удалить канал для вещания', default_member_permissions=disnake.Permissions(administrator=True))
