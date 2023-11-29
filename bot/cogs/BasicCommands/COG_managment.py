@@ -38,13 +38,21 @@ class VoiceManagement(commands.Cog):
                 except Exception: 
                     await inter.response.send_message("❌ Не получилось подключиться к каналу, указанному в настройках бота!", ephemeral=True)
                     return
-  
+
+            await inter.response.send_message("✅", ephemeral=True)
             await play_music(channel=voice_channel)
         else:
             await inter.response.send_message("❌ Сперва укажите канал для проигрывания потока по команде управления!", ephemeral=True)
             return
 
         await play_music(channel=channel)
+        # === Изменение статуса kicked ===
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
+                'guild_id': inter.guild.id,
+                'kicked': False
+            })
 
         
     @commands.has_permissions(administrator=True)
@@ -63,6 +71,14 @@ class VoiceManagement(commands.Cog):
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
+        
+        # === Изменение статуса kicked ===
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
+                'guild_id': inter.guild.id,
+                'kicked': True
+            })
 
 
 def setup(bot: commands.AutoShardedInteractionBot):

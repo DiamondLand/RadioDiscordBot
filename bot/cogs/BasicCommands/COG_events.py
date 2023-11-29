@@ -24,8 +24,10 @@ class Events(commands.Cog):
                 response = await client.get(
                     f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={guild.id}"
                 )
-
-            if response.status_code == 200 and response.json():
+                kicked_response = await client.get(
+                    f"{self.config['SETTINGS']['backend_url']}get_kicked_status?guild_id={guild.id}"
+                )
+            if response.status_code == 200 and response.json() and kicked_response.status_code == 200 and kicked_response.json() == False:
                 try:
                     channel = self.bot.get_channel(response.json())
                     voice_channel = await channel.connect()
@@ -33,31 +35,27 @@ class Events(commands.Cog):
                 except Exception as _ex:
                     print(_ex)
 
-               
         logger.info("Music start")
 
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
-        bot_channel = next((vc for vc in self.bot.voice_clients if vc.guild.id == member.guild.id), None)
+        if member.id != self.bot.user.id:
+            # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
+            bot_channel = next((vc for vc in self.bot.voice_clients if vc.guild.id == member.guild.id), None)
 
-        # === Проверяем, был ли пользователь в голосовом канале и вышел ли из него ===
-        if before.channel and not after.channel:
-            # === Проверяем, остались ли еще пользователи в голосовом канале ===
-            channel_members = [m for m in before.channel.members if not m.bot]
-            if not channel_members:
-                if bot_channel.is_connected() and bot_channel.channel == before.channel:
-                    bot_channel.stop()
-                    print("остановлено")
-                return
+            # === Проверяем, был ли пользователь в голосовом канале и вышел из него ===
+            if before.channel and not after.channel:
+                # === Проверяем, остались ли еще пользователи в голосовом канале ===
+                channel_members = [m for m in before.channel.members if not m.bot]
+                if not channel_members:
+                    if bot_channel and bot_channel.channel == before.channel:
+                        bot_channel.stop()
+                    return
 
-        # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
-        if after.channel:
-            if not bot_channel.is_connected() or bot_channel.channel.id != after.channel.id:
-                # === Проверяем есть ли бот в канале ===
-                bot_channel = await after.channel.connect()
-        await play_music(channel=bot_channel)
+            # === Проверяем, входит ли пользователь в голосовой канал, где присутствует бот ===
+            if bot_channel and bot_channel.channel == after.channel:
+                await play_music(channel=after.channel)
 
 
     @commands.Cog.listener()

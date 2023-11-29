@@ -68,12 +68,13 @@ class Settings(commands.Cog):
             await inter.response.send_message(f"❌ {channel.name} уже является каналом для воспроизведения потока!", ephemeral=True)
             return
 
-        # --- Запись ID канала в базу---
+        # === Запись ID канала в базу ===
         async with httpx.AsyncClient() as client:
             await client.post(
                 f"{self.config['SETTINGS']['backend_url']}add_voice_channel_id", json={
                 'guild_id': inter.guild.id,
-                'channel_id': channel.id
+                'channel_id': channel.id,
+                'kicked': False
             })
 
         await play_music(channel=channel)
