@@ -14,7 +14,7 @@ class VoiceManagement(commands.Cog):
 
 
     @commands.has_permissions(administrator=True)
-    @commands.slash_command(name='старт', description='Начать проигрывание потока ', default_member_permissions=disnake.Permissions(administrator=True))
+    @commands.slash_command(name='старт', description='Начать проигрывание потока', default_member_permissions=disnake.Permissions(administrator=True))
     async def join_on_voice_channel(self, inter: disnake.ApplicationCommandInteraction):
         # === Проверка на наличие канала в базе данных ===
         async with httpx.AsyncClient() as client:
@@ -39,18 +39,19 @@ class VoiceManagement(commands.Cog):
                     await inter.response.send_message("❌ Не получилось подключиться к каналу, указанному в настройках бота!", ephemeral=True)
                     return
 
-            # === Изменение статуса kicked ===
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
-                    'guild_id': inter.guild.id,
-                    'kicked': False
-                })
-            await play_music(channel=voice_channel)
-            await inter.response.send_message("✅", ephemeral=True)
+                await play_music(channel=voice_channel)
+                # === Изменение статуса kicked ===
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
+                        'guild_id': inter.guild.id,
+                        'kicked': False
+                    })
+                await inter.response.send_message("✅", ephemeral=True)
+            else:
+                await inter.response.send_message(f"Бот уже играет в канале! Приятного прослушивания 🐼", ephemeral=True)
         else:
             await inter.response.send_message("❌ Сперва укажите канал для проигрывания потока по команде управления!", ephemeral=True)
-            return
 
         
     @commands.has_permissions(administrator=True)
