@@ -4,7 +4,7 @@ from disnake import FFmpegPCMAudio
 from main import config
 
 async def play_music(channel: disnake.VoiceChannel):
-    if channel.guild.voice_client.is_connected():
+    if channel.guild.voice_client and channel.guild.voice_client.is_connected():
         try:
             music_source = FFmpegPCMAudio(
                 source=config["SETTINGS"]["music_url"],

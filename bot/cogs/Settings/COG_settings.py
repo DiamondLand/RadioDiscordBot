@@ -77,8 +77,6 @@ class Settings(commands.Cog):
                 'kicked': False
             })
 
-        await play_music(channel=voice_channel)
-
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='удалить-канал', description='Удалить канал для вещания', default_member_permissions=disnake.Permissions(administrator=True))
     async def delete_voice_channel(self, inter: disnake.ApplicationCommandInteraction):

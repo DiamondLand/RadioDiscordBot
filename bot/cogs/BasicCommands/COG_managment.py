@@ -34,12 +34,11 @@ class VoiceManagement(commands.Cog):
             if not voice_client:
                 # === Если не подключён к каналу ===
                 try:
-                    voice_channel = await channel.connect()
+                    await channel.connect()
                 except Exception: 
                     await inter.response.send_message("❌ Не получилось подключиться к каналу, указанному в настройках бота!", ephemeral=True)
                     return
 
-                await play_music(channel=voice_channel)
                 # === Изменение статуса kicked ===
                 async with httpx.AsyncClient() as client:
                     await client.post(
