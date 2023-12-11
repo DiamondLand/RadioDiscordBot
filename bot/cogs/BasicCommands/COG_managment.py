@@ -71,7 +71,7 @@ class VoiceManagement(commands.Cog):
                 await inter.response.send_message(embed=emb, ephemeral=True)
                 return
             
-            # === Блок включения проигрывания музыки ===
+            # === Блок проигрывания музыки ===
             if voice_client is not None and not voice_client.is_playing():
                 await play_music(channel=voice_channel)
         else:

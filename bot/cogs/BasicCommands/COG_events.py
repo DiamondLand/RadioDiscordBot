@@ -49,11 +49,10 @@ class Events(commands.Cog):
                     f"{self.config['SETTINGS']['backend_url']}get_kicked_status?guild_id={guild.id}"
                 )
             if response.status_code == 200 and response.json() and kicked_response.status_code == 200 and kicked_response.json() == False:
-                try:
-                    channel = self.bot.get_channel(response.json())
-                    voice_channel = await channel.connect()
-                except Exception as _ex:
-                    print(_ex)
+                channel = self.bot.get_channel(response.json())
+                if channel is None:
+                    continue
+                voice_channel = await channel.connect()
 
                 if len(voice_channel.channel.members) > 1:
                     await play_music(channel=voice_channel)

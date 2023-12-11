@@ -50,7 +50,7 @@ class Settings(commands.Cog):
             voice_client = inter.guild.voice_client
 
             # === Если не подключен, то подключаем ===
-            if not voice_client:
+            if voice_client is None:
                 voice_channel = await channel.connect()
                 emb = disnake.Embed(
                     description=f"{inter.author.mention}, теперь **{channel.name}** будет каналом для воспроизведения потока.",
@@ -82,9 +82,11 @@ class Settings(commands.Cog):
                     'channel_id': channel.id,
                     'kicked': False
                 })
-                
-            # === Воспроизведене аудио если не играет ===
-            if voice_client and not voice_client.is_playing():
+            
+            voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
+            
+            # === Блок проигрывания музыки ===
+            if voice_client is not None and not voice_client.is_playing():
                 await play_music(channel=voice_channel)
         else:
             emb = disnake.Embed(
@@ -92,7 +94,7 @@ class Settings(commands.Cog):
                 colour=self.embed_color_error
             )
             emb.set_author(
-                name=f"Повторюшка, {inter.author.nick if inter.author.nick else inter.author.name} 💖!",
+                name=f"Повторюшка {inter.author.nick if inter.author.nick else inter.author.name}!",
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
@@ -107,16 +109,23 @@ class Settings(commands.Cog):
                 f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={inter.guild.id}"
             )
 
-        if channel_id_response.status_code == 200 and channel_id_response.json():
+        # === Блок проверки корректности обработки бэкенда ===
+        if channel_id_response.status_code != 200:
+            await inter.response.send_message("❌ На сервере бота произошла ошибка!", ephemeral=True)
+            return
+        
+        # === Если есть данные, то удаляем ===
+        if channel_id_response.json():
             # === Удаление ID канала ===
             async with httpx.AsyncClient() as client:
                 await client.post(
                     f"{self.config['SETTINGS']['backend_url']}delete_voice_channel_id?guild_id={inter.guild.id}"
                 )
 
+            voice_client = inter.guild.voice_client
             # === Если подключен к каналу, то выходим ===
-            if inter.guild.voice_client.is_connected():
-                await inter.guild.voice_client.disconnect()
+            if voice_client.is_connected():
+                await voice_client.disconnect()
 
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, канал для воспроизведения потока был удалён. Бот не будет играть на данном сервере!",
