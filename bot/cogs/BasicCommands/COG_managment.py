@@ -16,52 +16,104 @@ class VoiceManagement(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='старт', description='Начать проигрывание потока', default_member_permissions=disnake.Permissions(administrator=True))
     async def join_on_voice_channel(self, inter: disnake.ApplicationCommandInteraction):
-        # === Проверка на наличие канала в базе данных ===
+        # === Выборка данных о канале из базы данных ===
         async with httpx.AsyncClient() as client:
             channel_id_response = await client.get(
                 f"{self.config['SETTINGS']['backend_url']}get_voice_channel_id?guild_id={inter.guild.id}"
             )
         
-        if channel_id_response.status_code == 200 and channel_id_response.json():
-            # === Пытаемся найти канал, указанный в настройках ===
-            try:
-                channel = self.bot.get_channel(channel_id_response.json())
-            except Exception:
-                await inter.response.send_message("❌ Указанный в настройках бота канал не был обнаружен!", ephemeral=True)
-                return
+        # === Блок проверки корректности обработки бэкенда ===
+        if channel_id_response.status_code == 200:
+            _channel = channel_id_response.json()
+        else:
+            await inter.response.send_message("❌ На сервере бота произошла ошибка!", ephemeral=True)
+            return
+        
+        # === Блок получение атрибута канала из ID ===
+        if _channel is not None:
+            channel = inter.guild.get_channel(_channel)
 
+        # === Если канал найден ===
+        if channel is not None:
             voice_client = inter.guild.voice_client
-            if not voice_client:
-                # === Если не подключён к каналу ===
-                try:
-                    await channel.connect()
-                except Exception: 
-                    await inter.response.send_message("❌ Не получилось подключиться к каналу, указанному в настройках бота!", ephemeral=True)
-                    return
 
-                # === Изменение статуса kicked ===
+            # === Блок обработки подключения к голосовому каналу ===
+            if voice_client is None:
+                voice_channel = await channel.connect()
+                voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
+                emb = disnake.Embed(
+                    description=f"{inter.author.mention}, приятного прослушивания!",
+                    colour=self.embed_color
+                )
+                emb.set_author(
+                    name=f"Отлично, {inter.author.nick if inter.author.nick else inter.author.name}!",
+                    icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+                )
+                await inter.response.send_message(embed=emb, ephemeral=True)
+
+                # === Запись статуса kicked в базу данных ===
                 async with httpx.AsyncClient() as client:
                     await client.post(
-                        f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
+                        f"{self.config['SETTINGS']['backend_url']}add_voice_channel_id", json={
                         'guild_id': inter.guild.id,
+                        'channel_id': channel.id,
                         'kicked': False
-                    })
-                await inter.response.send_message("✅", ephemeral=True)
+                })
             else:
-                await inter.response.send_message(f"Бот уже играет в канале! Приятного прослушивания 🐼", ephemeral=True)
+                emb = disnake.Embed(
+                    description=f"{inter.author.mention}, бот уже подключен к голосовому каналу!",
+                    colour=self.embed_color_error
+                )
+                emb.set_author(
+                    name=inter.author.nick if inter.author.nick else inter.author.name,
+                    icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+                )
+                await inter.response.send_message(embed=emb, ephemeral=True)
+                return
+            
+            # === Блок включения проигрывания музыки ===
+            if voice_client is not None and not voice_client.is_playing():
+                await play_music(channel=voice_channel)
         else:
-            await inter.response.send_message("❌ Сперва укажите канал для проигрывания потока по команде управления!", ephemeral=True)
-
-        
+            emb = disnake.Embed(
+                description=f"{inter.author.mention}, боту не удалось определить канал для проигрывания!",
+                colour=self.embed_color_error
+            )
+            emb.set_author(
+                name=inter.author.nick if inter.author.nick else inter.author.name,
+                icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+            )
+            emb.set_footer(
+                text="Возможно, вы не указали канал в настройках бота..."
+            )
+            await inter.response.send_message(embed=emb, ephemeral=True)
+   
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='отключить', description='Отключить бота от голосового канала', default_member_permissions = disnake.Permissions(administrator=True))
     async def leave_from_voice_channnel(self, inter: disnake.ApplicationCommandInteraction):
-        if inter.guild.voice_client.is_connected():
-            await inter.guild.voice_client.disconnect()
-            await inter.response.send_message("✅", ephemeral=True)
+        voice_client = inter.guild.voice_client
+        if voice_client is not None:
+            await voice_client.disconnect()
+            emb = disnake.Embed(
+                description="Бот был отключён и не сможет играть на данном сервере пока вы не пригласите его в канал заново!",
+                colour=self.embed_color
+            )
+            emb.set_author(
+                name=inter.author.nick if inter.author.nick else inter.author.name,
+                icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+            )
+            await inter.response.send_message(embed=emb, ephemeral=True)
+            
+            # === Изменение статуса kicked ===
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
+                    'guild_id': inter.guild.id,
+                    'kicked': True
+                })
         else:
             emb = disnake.Embed(
-                description=f"{inter.author.mention}, бот не был присоединён ни к одному каналу!",
+                description="Бот не был присоединён ни к одному каналу!",
                 colour=self.embed_color_error
             )
             emb.set_author(
@@ -69,14 +121,6 @@ class VoiceManagement(commands.Cog):
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
-        
-        # === Изменение статуса kicked ===
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{self.config['SETTINGS']['backend_url']}change_kicked_status", json={
-                'guild_id': inter.guild.id,
-                'kicked': True
-            })
 
 
 def setup(bot: commands.AutoShardedInteractionBot):
