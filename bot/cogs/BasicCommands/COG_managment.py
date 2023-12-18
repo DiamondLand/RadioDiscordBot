@@ -73,7 +73,7 @@ class VoiceManagement(commands.Cog):
             
             # === Блок проигрывания музыки ===
             if voice_client is not None and not voice_client.is_playing():
-                await play_music(channel=voice_channel)
+                play_music(channel=voice_channel)
         else:
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, боту не удалось определить канал для проигрывания!",

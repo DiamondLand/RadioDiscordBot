@@ -84,10 +84,10 @@ class Settings(commands.Cog):
                 })
             
             voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
-            
+
             # === Блок проигрывания музыки ===
             if voice_client is not None and not voice_client.is_playing():
-                await play_music(channel=voice_channel)
+                play_music(channel=voice_channel)
         else:
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, выбранный вами **{channel.name}** уже является каналом вещания бота!",
