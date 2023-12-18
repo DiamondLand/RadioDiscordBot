@@ -1,4 +1,5 @@
 import disnake
+import asyncio
 import httpx
 
 from loguru import logger
@@ -95,7 +96,8 @@ class Events(commands.Cog):
                 voice_client = channel_after.guild.voice_client
 
                 if len(voice_members) >= 1:  
-                    if voice_client and not voice_client.is_playing():
+                    await asyncio.sleep(1)
+                    if voice_client and not voice_client.is_playing() and voice_client.is_connected():
                         play_music(channel=channel_after)
                         print("Включено при перемещении")
                 else:

@@ -2,7 +2,7 @@ import disnake
 import httpx
 
 from disnake.ext import commands
-from functions.play_audio import play_music
+from functions.get_song_info import get_current_song
 
 
 class Settings(commands.Cog):
@@ -51,9 +51,10 @@ class Settings(commands.Cog):
 
             # === Если не подключен, то подключаем ===
             if voice_client is None:
-                voice_channel = await channel.connect()
+                await channel.connect()
                 emb = disnake.Embed(
-                    description=f"{inter.author.mention}, теперь **{channel.name}** будет каналом для воспроизведения потока.",
+                    description=f"{inter.author.mention}, теперь **{channel.name}** будет каналом для воспроизведения потока.\
+                    \n\nСейчас играет: **{get_current_song(self.config)}**. Приятного прослушивания! 💖",
                     colour=self.embed_color
                 )
                 emb.set_author(
@@ -63,9 +64,10 @@ class Settings(commands.Cog):
                 await inter.response.send_message(embed=emb, ephemeral=True)
             # === Если подключён, но указан другой канал, то перемещаем ===
             else:
-                voice_channel = await voice_client.move_to(channel)
+                await voice_client.move_to(channel)
                 emb = disnake.Embed(
-                    description=f"{inter.author.mention}, новый канал для воспроизведения потока — **{channel.name}**.",
+                    description=f"{inter.author.mention}, новый канал для воспроизведения потока — **{channel.name}**.\
+                    \n\nСейчас играет: **{get_current_song(self.config)}**. Приятного прослушивания! 💖",
                     colour=self.embed_color
                 )
                 emb.set_author(
@@ -83,11 +85,6 @@ class Settings(commands.Cog):
                     'kicked': False
                 })
             
-            voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
-
-            # === Блок проигрывания музыки ===
-            if voice_client is not None and not voice_client.is_playing():
-                play_music(channel=voice_channel)
         else:
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, выбранный вами **{channel.name}** уже является каналом вещания бота!",

@@ -2,7 +2,7 @@ import disnake
 import httpx
 
 from disnake.ext import commands
-from functions.play_audio import play_music
+from functions.get_song_info import get_current_song
 
 
 class VoiceManagement(commands.Cog):
@@ -12,6 +12,18 @@ class VoiceManagement(commands.Cog):
         self.embed_color = bot.embed_color
         self.embed_color_error = bot.embed_color_error
 
+
+    @commands.slash_command(name='название', description='Информация о текущей композиции')
+    async def current_song(self, inter: disnake.ApplicationCommandInteraction):
+        emb = disnake.Embed(
+            description=f"Сейчас играет: **{get_current_song(self.config)}**",
+            colour=self.embed_color
+        )
+        emb.set_author(
+            name=inter.author.nick if inter.author.nick else inter.author.name,
+            icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+        )
+        await inter.response.send_message(embed=emb, ephemeral=True)
 
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='старт', description='Начать проигрывание потока', default_member_permissions=disnake.Permissions(administrator=True))
@@ -39,10 +51,10 @@ class VoiceManagement(commands.Cog):
 
             # === Блок обработки подключения к голосовому каналу ===
             if voice_client is None:
-                voice_channel = await channel.connect()
+                await channel.connect()
                 voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
                 emb = disnake.Embed(
-                    description=f"{inter.author.mention}, приятного прослушивания!",
+                    description=f"Сейчас играет: **{get_current_song(self.config)}**. Приятного прослушивания! 💖",
                     colour=self.embed_color
                 )
                 emb.set_author(
@@ -71,9 +83,6 @@ class VoiceManagement(commands.Cog):
                 await inter.response.send_message(embed=emb, ephemeral=True)
                 return
             
-            # === Блок проигрывания музыки ===
-            if voice_client is not None and not voice_client.is_playing():
-                play_music(channel=voice_channel)
         else:
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, боту не удалось определить канал для проигрывания!",
