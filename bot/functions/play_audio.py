@@ -13,6 +13,6 @@ def play_music(channel: disnake.VoiceChannel):
             )
             voice_client.play(music_source)
         except Exception as _ex:
-            print(_ex)
+            ...
     else:
         print("Не подключено")
