@@ -31,10 +31,8 @@ class Events(commands.Cog):
                 if voice_client: 
                     if len(voice_members) < 1 and voice_client and voice_client.is_playing():
                         voice_client.stop()
-                        print("Остановлено в таске")
                 elif len(voice_members) >= 1 and voice_client and not voice_client.is_playing():
                         play_music(channel=channel)
-                        print("Включено в таске")
                          
 
     @commands.Cog.listener()
@@ -57,9 +55,6 @@ class Events(commands.Cog):
 
                 if len(voice_channel.channel.members) > 1:
                     play_music(channel=voice_channel)
-                    print("Играет")
-                else:
-                    print("Не играет")
 
         self.check_channel_task.start()
         logger.info("Task start")
@@ -78,7 +73,6 @@ class Events(commands.Cog):
                 voice_client = channel_before.guild.voice_client
                 if len(voice_members) < 1 and voice_client and voice_client.is_playing():
                     voice_client.stop()
-                    print("Остановлено")
 
             # === Пользователь зашёл в канал с ботом ===
             elif channel_after and self.bot.user in channel_after.members and channel_before != channel_after:
@@ -86,7 +80,6 @@ class Events(commands.Cog):
                 voice_client = channel_after.guild.voice_client
                 if len(voice_members) >= 1 and voice_client and not voice_client.is_playing():
                     play_music(channel=channel_after)
-                    print("Включено")
         
         # === Если наш бот ===
         elif member.id == self.bot.user.id:
@@ -99,11 +92,9 @@ class Events(commands.Cog):
                     await asyncio.sleep(1)
                     if voice_client and not voice_client.is_playing() and voice_client.is_connected():
                         play_music(channel=channel_after)
-                        print("Включено при перемещении")
                 else:
                     if voice_client and voice_client.is_playing():
                         voice_client.stop()
-                        print("Остановлено при перемещении")
 
 
     @commands.Cog.listener()
