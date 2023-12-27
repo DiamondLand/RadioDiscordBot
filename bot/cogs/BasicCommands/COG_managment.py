@@ -13,18 +13,6 @@ class VoiceManagement(commands.Cog):
         self.embed_color_error = bot.embed_color_error
 
 
-    @commands.slash_command(name='название', description='Информация о текущей композиции')
-    async def current_song(self, inter: disnake.ApplicationCommandInteraction):
-        emb = disnake.Embed(
-            description=f"Сейчас играет: **{get_current_song(self.config)}**",
-            colour=self.embed_color
-        )
-        emb.set_author(
-            name=inter.author.nick if inter.author.nick else inter.author.name,
-            icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
-        )
-        await inter.response.send_message(embed=emb, ephemeral=True)
-
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='старт', description='Начать проигрывание потока', default_member_permissions=disnake.Permissions(administrator=True))
     async def join_on_voice_channel(self, inter: disnake.ApplicationCommandInteraction):
@@ -99,7 +87,6 @@ class VoiceManagement(commands.Cog):
                 text="Возможно, вы не указали канал в настройках бота..."
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
-
 
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='отключить', description='Отключить бота от голосового канала', default_member_permissions = disnake.Permissions(administrator=True))

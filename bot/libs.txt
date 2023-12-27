@@ -7,3 +7,4 @@ tortoise-orm==0.20.0
 httpx==0.26.0
 fastapi
 requests
+psutil==5.9.7
