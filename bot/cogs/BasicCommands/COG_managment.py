@@ -50,8 +50,11 @@ class VoiceManagement(commands.Cog):
             voice_client = inter.guild.voice_client
 
             # === Блок обработки подключения к голосовому каналу ===
-            if voice_client is None:
-                await channel.connect()
+            if voice_client is None or not voice_client.is_connected():
+                try:
+                    await channel.connect()
+                except:
+                    await voice_client.move_to(channel)
                 voice_client = inter.guild.voice_client # Задаём новый voice_client поскольку бот вошёл в канал
                 emb = disnake.Embed(
                     description=f"Сейчас играет: **{get_current_song(self.config)}**. Приятного прослушивания! 💖",
@@ -96,7 +99,8 @@ class VoiceManagement(commands.Cog):
                 text="Возможно, вы не указали канал в настройках бота..."
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
-   
+
+
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='отключить', description='Отключить бота от голосового канала', default_member_permissions = disnake.Permissions(administrator=True))
     async def leave_from_voice_channnel(self, inter: disnake.ApplicationCommandInteraction):

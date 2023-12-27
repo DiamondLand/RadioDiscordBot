@@ -69,10 +69,12 @@ class Events(commands.Cog):
                 channel = self.bot.get_channel(response.json())
                 if channel is None:
                     continue
-                voice_channel = await channel.connect()
-
-                if len(voice_channel.channel.members) > 1:
-                    play_music(channel=voice_channel)
+                try:
+                    voice_channel = await channel.connect()
+                    if len(voice_channel.channel.members) > 1:
+                        play_music(channel=voice_channel)
+                except:
+                    pass
 
         self.change_status.start()
         logger.info("Status Task start")
