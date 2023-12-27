@@ -1,10 +1,13 @@
 import disnake
 import asyncio
 import httpx
+import itertools
 
 from loguru import logger
 from disnake.ext import commands, tasks
 from functions.play_audio import play_music
+from functions.get_song_info import get_current_song
+from functions.get_total_users import get_current_users
 
 
 class Events(commands.Cog):
@@ -13,6 +16,10 @@ class Events(commands.Cog):
         self.config = bot.config
         self.embed_color = bot.embed_color
         self.embed_color_error = bot.embed_color_error
+        self.status = itertools.cycle([
+            "музыку с {users} людьми!",
+            "{song}"
+        ])
     
     def get_bot_voice_channel(self, guild):
         for vc in guild.voice_channels:
@@ -20,6 +27,18 @@ class Events(commands.Cog):
                 return vc
         return None
     
+    # === Таск на статус  ===
+    @tasks.loop(seconds=30)
+    async def change_status(self):
+        await self.bot.change_presence(
+            activity=disnake.Activity(
+                type=disnake.ActivityType.listening,
+                name=next(self.status).format(
+                    users=len(get_current_users(self.bot)), 
+                    song=get_current_song(self.config)[:100])
+            )
+        )  
+
     # === Таск на проверку людей в канале ===
     @tasks.loop(minutes=1)
     async def check_channel_task(self):
@@ -32,8 +51,7 @@ class Events(commands.Cog):
                     if len(voice_members) < 1 and voice_client and voice_client.is_playing():
                         voice_client.stop()
                 elif len(voice_members) >= 1 and voice_client and not voice_client.is_playing():
-                        play_music(channel=channel)
-                         
+                        play_music(channel=channel)            
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -56,8 +74,11 @@ class Events(commands.Cog):
                 if len(voice_channel.channel.members) > 1:
                     play_music(channel=voice_channel)
 
+        self.change_status.start()
+        logger.info("Status Task start")
+
         self.check_channel_task.start()
-        logger.info("Task start")
+        logger.info("Music Task start")
 
 
     @commands.Cog.listener()
