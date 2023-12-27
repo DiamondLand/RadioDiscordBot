@@ -1,5 +1,4 @@
 import disnake
-import httpx
 
 from .info_view import InfoSelectMenuView
 from disnake.ext import commands
@@ -27,7 +26,7 @@ class Information(commands.Cog):
         await inter.response.send_message(embed=emb, ephemeral=True)
 
     
-    @commands.slash_command(name='информация', description='Вся необходимая информация')
+    @commands.slash_command(name='хелп', description='Меню помощи')
     async def information(self, inter: disnake.ApplicationCommandInteraction):
         emb = disnake.Embed(
             title=f"Меню помощи {self.config['INFO']['name']}:",
