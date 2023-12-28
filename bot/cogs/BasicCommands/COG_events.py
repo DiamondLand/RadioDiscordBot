@@ -26,6 +26,7 @@ class Events(commands.Cog):
                 return vc
         return None
     
+    
     # === Таск на статус ===
     @tasks.loop(seconds=30)
     async def change_status(self):
@@ -37,6 +38,7 @@ class Events(commands.Cog):
                     song=get_current_song(self.config)[:100])
             )
         )  
+
 
     # === Таск на проверку людей в канале ===
     @tasks.loop(minutes=1)
@@ -76,11 +78,13 @@ class Events(commands.Cog):
                 except:
                     pass
 
-        self.change_status.start()
-        logger.info("Status Task start")
+        if not self.change_status.is_running():
+            self.change_status.start()
+            logger.info("Status Task start")
 
-        self.check_channel_task.start()
-        logger.info("Music Task start")
+        if not self.check_channel_task.is_running():
+            self.check_channel_task.start()
+            logger.info("Music Task start")
 
 
     @commands.Cog.listener()

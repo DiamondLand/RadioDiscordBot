@@ -2,7 +2,7 @@ import disnake
 
 from .info_view import InfoSelectMenuView
 from disnake.ext import commands
-from functions.get_song_info import get_current_song
+from functions.get_song_info import get_current_song, get_kbps, get_djname
 
 
 class Information(commands.Cog):
@@ -16,12 +16,16 @@ class Information(commands.Cog):
     @commands.slash_command(name='название', description='Информация о текущей композиции')
     async def current_song(self, inter: disnake.ApplicationCommandInteraction):
         emb = disnake.Embed(
-            description=f"Сейчас играет: **{get_current_song(self.config)}**",
+            description=f"> Сейчас играет: **{get_current_song(self.config)}**\
+            \n> Диджей: **{get_djname(self.config)}**",
             colour=self.embed_color
         )
         emb.set_author(
             name=inter.author.nick if inter.author.nick else inter.author.name,
-            icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+            icon_url=inter.author.avatar.url if inter.author.avatar.url else inter.author.default_avatar
+        )
+        emb.set_footer(
+            text=f"Качество аудиофайла — {get_kbps(self.config)} kbps"
         )
         await inter.response.send_message(embed=emb, ephemeral=True)
 

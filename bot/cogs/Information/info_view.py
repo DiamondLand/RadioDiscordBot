@@ -2,7 +2,7 @@ import disnake
 import psutil
 
 from datetime import datetime
-from functions.get_song_info import get_current_song
+from functions.get_song_info import get_current_song, get_djname, get_kbps
 from functions.get_total_users import get_current_users
 
 class InfoSelectMenuView(disnake.ui.View):
@@ -19,9 +19,7 @@ class InfoSelectMenu(disnake.ui.Select):
             disnake.SelectOption(
                 label="Информация", description="Информация о боте"),
             disnake.SelectOption(
-                label="Новости", description="Подписаться на новости"),
-            disnake.SelectOption(
-                label="Список команд", description="Получить список команд"),
+                label="Список команд", description="Получить список команд")
         ]
 
         super().__init__(
@@ -48,7 +46,7 @@ class InfoSelectMenu(disnake.ui.Select):
                 """)
 
             emb.set_author(
-                name=f"{self.bot.config['INFO']['name']} - лучшее радио на ваш сервер 🥰",
+                name=f"{self.bot.config['INFO']['name']} - лучшее радио на ваш сервер!",
                 icon_url=self.bot.user.avatar if self.bot.user.avatar else None
             )
             await inter.edit_original_response(embed=emb, view=InfoSelectMenuView(self.bot, self.embed_color))
@@ -56,11 +54,12 @@ class InfoSelectMenu(disnake.ui.Select):
         if self.values[0] == "Информация":
             emb = disnake.Embed(
                 title=f"Информация о боте {self.bot.config['INFO']['name']}:",
-                description=f"\n> Дата: **{datetime.now().strftime('%d.%m.%Y — %H:%M:%S')}** | Пинг: **{round(self.bot.latency * 1000)}**\
-                \n> Загруженность CPU: **{psutil.cpu_percent()}%** | Использовано памяти: **{psutil.virtual_memory().percent}%Что**\
+                description=f"\n> Дата: **{datetime.now().strftime('%d.%m %H:%M')}**\n> Пинг: **{round(self.bot.latency * 1000)}**\
+                \n> Загруженность CPU: **{psutil.cpu_percent()}%**\n> Использовано памяти: **{psutil.virtual_memory().percent}%**\
                 \n\
-                \n> Серверов: **{len(self.bot.guilds)}** | Пользователей: **{len(self.bot.users)}**\
-                \n> Сейчас играет: **{get_current_song(self.bot.config)}** | Человек слушает: **{get_current_users(self.bot)}**\
+                \n> Серверов: **{len(self.bot.guilds)}**\n> Пользователей: **{len(self.bot.users)}**\
+                \n\
+                \n> Сейчас играет: **{get_current_song(self.bot.config)}**\n> Диджей: **{get_djname(self.bot.config)}**\n> Слушает: **{get_current_users(self.bot)}**\
                 \n\
                 \n> Рекомендуем зайти на **[сервер поддержки]({self.bot.config['INFO']['support_server_link']})** для получения дополнительных услуг.\
                 \n\

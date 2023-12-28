@@ -8,8 +8,8 @@ def play_music(channel: disnake.VoiceChannel):
     if voice_client and voice_client.is_connected():
         music_source = FFmpegPCMAudio(
             source=config["SETTINGS"]["music_url"],
-            #executable="bot/assets/ffmpeg-6.1/bin/ffmpeg.exe" # Windows
-            executable="ffmpeg" # Linux: sudo apt update, sudo apt install ffmpeg
+            executable="bot/assets/ffmpeg-6.1/bin/ffmpeg.exe" # Windows
+            #executable="ffmpeg" # Linux: sudo apt update, sudo apt install ffmpeg
 
         )
         voice_client.play(music_source)
