@@ -51,7 +51,21 @@ class Settings(commands.Cog):
 
             # === Если не подключен, то подключаем ===
             if voice_client is None:
-                await channel.connect()
+                try:
+                    await channel.connect()
+                except:
+                    # === Если не удалось подключиться ===
+                    emb = disnake.Embed(
+                        description=f"{inter.author.mention}, выбранный вами канал не действителен!",
+                        colour=self.embed_color_error
+                    )
+                    emb.set_author(
+                        name=inter.author.nick if inter.author.nick else inter.author.name,
+                        icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
+                    )
+                    await inter.response.send_message(embed=emb, ephemeral=True)
+                    return
+                
                 emb = disnake.Embed(
                     description=f"{inter.author.mention}, теперь **{channel.name}** будет каналом для воспроизведения потока.\
                     \n\nСейчас играет: **{get_current_song(self.config)}**. Приятного прослушивания! 💖",
@@ -83,8 +97,7 @@ class Settings(commands.Cog):
                     'guild_id': inter.guild.id,
                     'channel_id': channel.id,
                     'kicked': False
-                })
-            
+                })   
         else:
             emb = disnake.Embed(
                 description=f"{inter.author.mention}, выбранный вами **{channel.name}** уже является каналом вещания бота!",
@@ -95,7 +108,6 @@ class Settings(commands.Cog):
                 icon_url=inter.author.avatar.url if inter.author.avatar else inter.author.default_avatar
             )
             await inter.response.send_message(embed=emb, ephemeral=True)
-            return
 
     @commands.has_permissions(administrator=True)
     @commands.slash_command(name='удалить-канал', description='Удалить канал для вещания', default_member_permissions=disnake.Permissions(administrator=True))

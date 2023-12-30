@@ -28,11 +28,14 @@ class VoiceManagement(commands.Cog):
         else:
             await inter.response.send_message("❌ На сервере бота произошла ошибка!", ephemeral=True)
             return
-        
+
         # === Блок получение атрибута канала из ID ===
         if _channel is not None:
             channel = inter.guild.get_channel(_channel)
+        else:
+            channel = None
 
+        
         # === Если канал найден ===
         if channel is not None:
             voice_client = inter.guild.voice_client
